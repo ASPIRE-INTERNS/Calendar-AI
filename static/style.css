@@ -1,0 +1,291 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+    background: #f0f0f0;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    max-width: 600px;
+    margin: auto;
+}
+
+.day-name, .day {
+    background: white;
+    padding: 15px 0;
+    border-radius: 5px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.day.empty {
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Only real day boxes (not empty) will have hover effect */
+.day:not(.empty):hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background-color: #ff4757;
+    border: 2px solid #ff6b81;
+}
+
+.navigation {
+    margin-bottom: 20px;
+    display: flex; /* <-- make them in a row */
+    align-items: center;
+    justify-content: center;
+    gap: 15px; /* spacing between elements */
+    flex-wrap: wrap; /* mobile friendly */
+}
+
+.navigation a {
+    text-decoration: none;
+    color: white;
+    background: #007bff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.navigation a:hover {
+    background: #0056b3;
+}
+
+.today {
+    background: #ff4757;
+    color: white;
+    font-weight: bold;
+    border: 2px solid #ff6b81;
+    box-shadow: 0 0 10px rgba(255,71,87,0.7);
+}
+
+.add-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    text-align: center;
+}
+
+#addButton {
+    background: #485470;
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#addButton i {
+    color: white;
+}
+
+#addButton:hover {
+    background-color: #218838;
+    transform: scale(1.1);
+}
+
+#addOptions {
+    position: absolute;
+    bottom: 66px;
+    left: -80px; /* move it slightly left so it doesn't touch the right screen edge */
+    background-color: #f1f1f1;
+    width: 140px;
+    border-radius: 5px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+/* When it's active (not hidden) */
+#addOptions.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+
+/* Show dropdown when active */
+#addOptions.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+#addOptions .option {
+    padding: 10px 0px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#addOptions .option:hover {
+    background-color: #f2f2f2;
+}
+
+#addOptions::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: white;
+}
+
+#addOptions::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px;
+    border-style: solid;
+    border-color: #f1f1f1 transparent transparent transparent;
+}
+
+
+#formPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#formPopup.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#formPopup:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+#formPopup.show {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+#formTitle {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+#eventForm input, #eventForm textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+#eventForm input:focus, #eventForm textarea:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+#eventForm button {
+    margin: 5px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+#eventForm button[type="submit"] {
+    background-color: #28a745;
+    color: white;
+}
+
+#eventForm button[type="button"] {
+    background-color: #6c757d;
+    color: white;
+}
+
+#eventForm button:hover {
+    background-color: #218838;
+}
+
+#eventForm button[type="button"]:hover {
+    background-color: #5a6268;
+}
+
+.hidden {
+    display: none;
+}
+
+#eventList {
+    margin-top: 20px;
+    text-align: left;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.event-item {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+}
+
+.jump-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.jump-container select, 
+.jump-container input, 
+.jump-container button {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+#jumpButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#jumpButton:hover {
+    background-color: #218838;
+}

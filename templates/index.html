@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ month }} {{ year }} Calendar</title>    
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <h1>{{ month }} {{ year }}</h1>
+    <div class="navigation">
+        <a href="{{ url_for('calendar_view', year=current_year, month=current_month - 1) }}">&#8592; Previous</a>
+    
+        <div class="jump-container">
+            <select id="jumpMonth">
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+            </select>
+    
+            <input type="number" id="jumpYear" placeholder="Year">
+            <button id="jumpButton">Go</button>
+        </div>
+    
+        <a href="{{ url_for('calendar_view', year=current_year, month=current_month + 1) }}">Next &#8594;</a>
+    </div>
+    
+
+    <div class="add-container">
+        <button id="addButton">
+            <i class="fas fa-plus" style="color: white;"></i>
+        </button>
+        <div id="addOptions">
+            <div class="option" data-type="Event">Event</div>
+            <div class="option" data-type="Reminder">Reminder</div>
+            <div class="option" data-type="Task">Task</div>
+        </div>
+              
+    </div>    
+    
+    <!-- Placeholder for Form -->
+    <div id="formPopup" class="hidden">
+        <form id="eventForm">
+            <h2 id="formTitle">Add Item</h2>
+            <input type="text" id="title" placeholder="Title" required><br>
+            <textarea id="description" placeholder="Description"></textarea><br>
+            <button type="submit">Save</button>
+            <button type="button" class="cancel" onclick="closeForm()">Cancel</button> <!-- Cancel button -->
+        </form>
+    </div>    
+    
+    <div class="calendar">
+        <!-- Week Days -->
+        <div class="day-name">Sun</div>
+        <div class="day-name">Mon</div>
+        <div class="day-name">Tue</div>
+        <div class="day-name">Wed</div>
+        <div class="day-name">Thu</div>
+        <div class="day-name">Fri</div>
+        <div class="day-name">Sat</div>
+
+        <!-- Calendar Days -->
+        {% for week in calendar %}
+            {% for day in week %}
+                {% if day == 0 %}
+                    <div class="day empty"></div>
+                {% elif day == highlight_day %}
+                    <div class="day today">{{ day }}</div>
+                {% else %}
+                    <div class="day">{{ day }}</div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}    
+    </div>
+
+    <h2>Your Events</h2>
+    <div id="eventList"></div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+</body>
+</html>
