@@ -9,7 +9,11 @@
 </head>
 
 <body>
-    <h1>{{ month }} {{ year }}</h1>
+    <header>
+        <h1>Calendar</h1>
+    </header>
+
+    <h2>{{ month }} {{ year }}</h2>
     <div class="navigation">
         <a href="{{ url_for('calendar_view', year=current_year, month=current_month - 1) }}">&#8592; Previous</a>
     
@@ -53,11 +57,27 @@
     <div id="formPopup" class="hidden">
         <form id="eventForm">
             <h2 id="formTitle">Add Item</h2>
+        
             <input type="text" id="title" placeholder="Title" required><br>
+        
             <textarea id="description" placeholder="Description"></textarea><br>
+        
+            <input type="date" id="eventDate" required><br>
+        
+            <input type="time" id="eventTime" required><br>
+        
+            <select id="recurrence">
+                <option value="none">No Recurrence</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select><br>
+        
             <button type="submit">Save</button>
-            <button type="button" class="cancel" onclick="closeForm()">Cancel</button> <!-- Cancel button -->
+            <button type="button" onclick="closeForm()">Cancel</button>
         </form>
+        
     </div>    
     
     <div class="calendar">
@@ -71,22 +91,62 @@
         <div class="day-name">Sat</div>
 
         <!-- Calendar Days -->
-        {% for week in calendar %}
-            {% for day in week %}
-                {% if day == 0 %}
-                    <div class="day empty"></div>
-                {% elif day == highlight_day %}
-                    <div class="day today">{{ day }}</div>
-                {% else %}
-                    <div class="day">{{ day }}</div>
-                {% endif %}
-            {% endfor %}
-        {% endfor %}    
+<!-- Calendar Days -->
+{% for week in calendar %}
+    {% for day in week %}
+        {% if day == 0 %}
+            <div class="day empty"></div>
+        {% elif day == highlight_day %}
+            <div class="day today" id="day-{{ day }}">
+                {{ day }}
+                <div class="event-icons" id="event-icons-{{ day }}"></div> <!-- Container for event icons -->
+            </div>
+        {% else %}
+            <div class="day" id="day-{{ day }}">
+                {{ day }}
+                <div class="event-icons" id="event-icons-{{ day }}"></div> <!-- Container for event icons -->
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+  
+    </div>
+    
+    <h2 id="yourEventsHeading" style="display: none;">Your Events</h2>
+    <div id="eventList"></div>    
+
+    <div class="logout-container">
+        <a href="{{ url_for('change_password') }}" class="btn btn-secondary">
+            <i class="fas fa-key"></i> Change Password
+        </a>
+        <a href="{{ url_for('logout') }}" class="logout-button">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+        </a>
+    </div>
+    
+    <div class="button-container">
+        <!-- Chatbot Button -->
+        <button id="chatbotButton" class="chatbot-button">
+            <i class="fas fa-comment-alt"></i>
+        </button>
+
+        <!-- Chatbot Dropdown -->
+        <div id="chatbotDropdown" class="chatbot-dropdown hidden">
+            <div id="chatbotHeader">
+                <span>Talk to AI</span>
+                <button id="closeChatbot" class="close-button">X</button>
+            </div>
+            <div id="chatArea">
+                <!-- Chat messages will appear here -->
+                <div class="user-message">Hello, I need help setting an event!</div>
+                <div class="ai-message">Sure! What event would you like to set?</div>
+            </div>
+            <input type="text" id="userMessage" placeholder="Ask me anything..." />
+            <button id="sendMessageButton">Send</button>
+        </div>
     </div>
 
-    <h2>Your Events</h2>
-    <div id="eventList"></div>
-    
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     
 </body>
