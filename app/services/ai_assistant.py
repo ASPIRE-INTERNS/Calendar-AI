@@ -1,16 +1,19 @@
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pymongo import MongoClient
 from bson import ObjectId
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OllamaAssistant:
-    def __init__(self, model_name="llama3.2"):
-        self.model_name = model_name
-        self.base_url = "http://localhost:11434/api/generate"
+    def __init__(self, model_name=None):
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL_NAME", "llama3.2")
+        self.base_url = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
         
-        # MongoDB connection
-        self.client = MongoClient('mongodb://localhost:27017/calendar')
+        self.client = MongoClient(os.getenv("MONGO_URI"))
         self.db = self.client['calendar']
         self.llm_info = self.db['llm_info']
         self.events = self.db['events']
@@ -51,6 +54,12 @@ class OllamaAssistant:
         - Type (Event, Reminder, or Task)
         - Recurrence (none, daily, weekly, monthly, yearly)
         
+        For dates:
+        - Use today's date if the user says "today"
+        - Use tomorrow's date if the user says "tomorrow"
+        - Use the actual date if provided
+        - Always use YYYY-MM-DD format
+        
         Please provide your response in JSON format with the following structure:
         {
             "output_llm": "Your response message here",
@@ -58,8 +67,8 @@ class OllamaAssistant:
                 "type": "task/event/reminder",
                 "title": "...",
                 "description": "...",
-                "date": "...",
-                "time": "...",
+                "date": "YYYY-MM-DD",
+                "time": "HH:MM",
                 "recurrence": "none"
             }
         }
@@ -88,6 +97,14 @@ class OllamaAssistant:
             # If there's event data, save it to events collection
             event_data = response_data.get('event_data')
             if event_data:
+                # Ensure the date is in the correct format
+                try:
+                    # Parse the date to validate it
+                    datetime.strptime(event_data['date'], '%Y-%m-%d')
+                except ValueError:
+                    # If date is invalid, use today's date
+                    event_data['date'] = datetime.now().strftime('%Y-%m-%d')
+                
                 event_data['user_id'] = user_id
                 event_data['created_at'] = datetime.now()
                 self.events.insert_one(event_data)

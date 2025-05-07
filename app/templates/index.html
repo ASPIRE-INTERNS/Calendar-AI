@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ month }} {{ year }} Calendar</title>    
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
+</script>
 <body>
     <header>
         <h1>Calendar</h1>
@@ -15,7 +16,7 @@
 
     <h2>{{ month }} {{ year }}</h2>
     <div class="navigation">
-        <a href="{{ url_for('calendar_view', year=current_year, month=current_month - 1) }}">&#8592; Previous</a>
+        <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month - 1) }}">&#8592; Previous</a>
     
         <div class="jump-container">
             <select id="jumpMonth">
@@ -37,7 +38,7 @@
             <button id="jumpButton">Go</button>
         </div>
     
-        <a href="{{ url_for('calendar_view', year=current_year, month=current_month + 1) }}">Next &#8594;</a>
+        <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month + 1) }}">Next &#8594;</a>
     </div>
     
 
@@ -82,14 +83,13 @@
     
     <div class="calendar">
         <!-- Week Days -->
-        <div class="day-name">Sun</div>
         <div class="day-name">Mon</div>
         <div class="day-name">Tue</div>
         <div class="day-name">Wed</div>
         <div class="day-name">Thu</div>
         <div class="day-name">Fri</div>
         <div class="day-name">Sat</div>
-
+        <div class="day-name">Sun</div>
         <!-- Calendar Days -->
 <!-- Calendar Days -->
 {% for week in calendar %}
@@ -116,10 +116,10 @@
     <div id="eventList"></div>    
 
     <div class="logout-container">
-        <a href="{{ url_for('change_password') }}" class="btn btn-secondary">
+        <a href="{{ url_for('auth.change_password') }}" class="btn btn-secondary">
             <i class="fas fa-key"></i> Change Password
         </a>
-        <a href="{{ url_for('logout') }}" class="logout-button">
+        <a href="{{ url_for('auth.logout') }}" class="logout-button">
             <i class="fas fa-sign-out-alt"></i>
             Logout
         </a>
@@ -147,7 +147,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     
 </body>
 </html>

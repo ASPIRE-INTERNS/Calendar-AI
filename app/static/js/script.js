@@ -24,6 +24,16 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 events = data;
                 renderEvents();
+                
+                // Clear all existing icons first
+                document.querySelectorAll('.event-icons').forEach(iconContainer => {
+                    iconContainer.innerHTML = '';
+                });
+                
+                // Add icons for all events
+                events.forEach(event => {
+                    handleRecurringEvents(event);
+                });
             })
             .catch(error => console.error('Error loading events:', error));
     }
@@ -248,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function () {
         icon.classList.add('fas', 
             eventType === "Reminder" ? "fa-bell" :
             eventType === "Task" ? "fa-check-circle" :
-            "fa-star"
+            "fa-calendar"
         );
         dayElement.appendChild(icon);
     }
@@ -263,18 +273,15 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('yourEventsHeading').style.display = 'none';
         }
     
-        // Clear all existing icons first
-        document.querySelectorAll('.event-icons').forEach(iconContainer => {
-            iconContainer.innerHTML = '';
-        });
-    
         events.forEach((ev, index) => {
             const eventDiv = document.createElement('div');
             eventDiv.classList.add('event-item');
             
             // Format the recurrence text
-            let recurrenceText = ev.recurrence === 'none' ? 'No Recurrence' : 
-                                ev.recurrence.charAt(0).toUpperCase() + ev.recurrence.slice(1);
+            let recurrenceText = (!ev.recurrence || ev.recurrence === 'none') 
+                ? 'No Recurrence' 
+                : ev.recurrence.charAt(0).toUpperCase() + ev.recurrence.slice(1);
+
             
             eventDiv.innerHTML = `
                 <h3>${ev.title}</h3>
@@ -408,15 +415,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.event_data) {
                         const eventType = data.event_data.type;
                         responseText = `I've created your ${eventType.toLowerCase()}: "${data.event_data.title}" on ${data.event_data.date} at ${data.event_data.time}`;
+                        
+                        // Reload events and refresh the calendar
+                        loadEvents();
                     }
                     
                     aiResponseDiv.textContent = `AI: ${responseText}`;
                     chatArea.appendChild(aiResponseDiv);
-
-                    // If there's event data, reload the events to show the new one
-                    if (data.event_data) {
-                        loadEvents();
-                    }
                 } else {
                     const errorDiv = document.createElement('div');
                     errorDiv.classList.add('ai-message', 'error');
@@ -508,3 +513,5 @@ setTimeout(() => {
         }, 500); // Remove message after the fade-out transition
     });
 }, 5000); // Adjust time as needed
+
+

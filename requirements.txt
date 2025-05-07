@@ -1,0 +1,5 @@
+# List your Python package dependencies here
+Flask
+pymongo
+python-dotenv
+werkzeug

@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Signup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="container">
-        <h2>Login</h2>
-        
-        <!-- Flash message display -->
+        <h2>Signup</h2>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <ul>
+                <ul class="flash-messages">
                     {% for category, message in messages %}
                         <li class="{{ category }}">{{ message }}</li>
                     {% endfor %}
@@ -22,23 +20,23 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('login') }}" method="POST">
+        <form action="/signup" method="POST" class="form">
             <div class="form-group">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
             </div>
+
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">Login</button>
-                <a href="{{ url_for('change_password') }}" class="btn btn-secondary">
-                    <i class="fas fa-key"></i> Change Password
-                </a>
-            </div>
+
+            <button type="submit" class="submit-button">Signup</button>
         </form>
-        <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up here</a>.</p>
+
+        <p>Already have an account? <a href="/login">Login here.</a></p>
     </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
