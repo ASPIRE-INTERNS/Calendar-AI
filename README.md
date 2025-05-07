@@ -12,7 +12,6 @@ This is a modular and extensible AI-powered calendar web application built with 
 - Recurring Events Support
 - AI Assistant to process natural language calendar requests
 - Clean MVC-like structure with modular components
-- RESTful endpoints returning JSON for dynamic interactions
 
 ---
 
