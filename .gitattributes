@@ -1,2 +1,17 @@
 # Enforce LF line endings in the repo
 * text=auto
+
+# Handle Python scripts and templates
+*.py text
+*.html text
+*.js text
+*.css text
+*.json text
+*.md text
+
+# Binary files should not be altered
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

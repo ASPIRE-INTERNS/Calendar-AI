@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from app import users_collection, events_collection, llm_info_collection
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     db = current_app.db
-    users = db['users']
+    users = users_collection
 
     if request.method == 'POST':
         username = request.form['username']
@@ -25,7 +26,7 @@ def login():
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     db = current_app.db
-    users = db['users']
+    users = users_collection
 
     if request.method == 'POST':
         username = request.form['username']
@@ -50,7 +51,7 @@ def signup():
 @auth_bp.route('/change_password', methods=['GET', 'POST'])
 def change_password():
     db = current_app.db
-    users = db['users']
+    users = users_collection
 
     if request.method == 'POST':
         username = request.form.get('username')

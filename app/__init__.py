@@ -10,6 +10,9 @@ load_dotenv()
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
 db = client['calendar']
+users_collection = db['users']
+events_collection = db['events']
+llm_info_collection = db['llm_info']
 
 ai_assistant = OllamaAssistant()
 

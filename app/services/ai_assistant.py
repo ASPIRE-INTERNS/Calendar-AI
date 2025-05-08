@@ -5,8 +5,14 @@ from pymongo import MongoClient
 from bson import ObjectId
 import os
 from dotenv import load_dotenv
+from enum import Enum
 
 load_dotenv()
+
+class EventType(Enum):
+    EVENT = "event"
+    REMINDER = "reminder"
+    TASK = "task"
 
 class OllamaAssistant:
     def __init__(self, model_name=None):
@@ -37,8 +43,21 @@ class OllamaAssistant:
             return "I'm sorry, I'm having trouble connecting to the AI service right now."
             
     def process_calendar_request(self, user_message, user_id):
+        # Get current date and time
+        now = datetime.now()
+        current_date = now.strftime("%Y-%m-%d")
+        current_time = now.strftime("%H:%M")
+        current_day = now.strftime("%A")
+        tomorrow_date = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        
         # Add context about calendar functionality
-        context = """
+        context = f"""
+        Current Date and Time Information:
+        - Today's date: {current_date}
+        - Current time: {current_time}
+        - Current day: {current_day}
+        - Tomorrow's date: {tomorrow_date}
+
         You are an AI assistant for a calendar application. You can help users with:
         - Creating events
         - Managing reminders
@@ -51,27 +70,27 @@ class OllamaAssistant:
         - Description (if provided)
         - Date (in YYYY-MM-DD format)
         - Time (in HH:MM format)
-        - Type (Event, Reminder, or Task)
+        - Type (must be one of: {', '.join([t.value for t in EventType])})
         - Recurrence (none, daily, weekly, monthly, yearly)
         
         For dates:
-        - Use today's date if the user says "today"
-        - Use tomorrow's date if the user says "tomorrow"
+        - Use today's date ({current_date}) if the user says "today"
+        - Use tomorrow's date ({tomorrow_date}) if the user says "tomorrow"
         - Use the actual date if provided
         - Always use YYYY-MM-DD format
         
         Please provide your response in JSON format with the following structure:
-        {
+        {{
             "output_llm": "Your response message here",
-            "event_data": {
-                "type": "task/event/reminder",
+            "event_data": {{
                 "title": "...",
                 "description": "...",
                 "date": "YYYY-MM-DD",
                 "time": "HH:MM",
-                "recurrence": "none"
-            }
-        }
+                "recurrence": "none",
+                "type": "{', '.join([t.value for t in EventType])}"
+            }}
+        }}
         
         If you're creating an event, your output_llm should be a confirmation message like:
         "I've created your [type]: [title] on [date] at [time]"
@@ -97,13 +116,25 @@ class OllamaAssistant:
             # If there's event data, save it to events collection
             event_data = response_data.get('event_data')
             if event_data:
+                # Validate event type
+                event_type = event_data.get('type', '').lower()
+                if event_type not in [t.value for t in EventType]:
+                    event_data['type'] = EventType.EVENT.value  # Default to event if invalid type
+                
                 # Ensure the date is in the correct format
                 try:
                     # Parse the date to validate it
-                    datetime.strptime(event_data['date'], '%Y-%m-%d')
+                    event_date = datetime.strptime(event_data['date'], '%Y-%m-%d')
+                    
+                    # If the date is today but the time has passed, move it to tomorrow
+                    if event_date.date() == now.date():
+                        event_time = datetime.strptime(event_data['time'], '%H:%M').time()
+                        if event_time < now.time():
+                            event_data['date'] = tomorrow_date
+                    
                 except ValueError:
                     # If date is invalid, use today's date
-                    event_data['date'] = datetime.now().strftime('%Y-%m-%d')
+                    event_data['date'] = current_date
                 
                 event_data['user_id'] = user_id
                 event_data['created_at'] = datetime.now()

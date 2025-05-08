@@ -1,3 +1,10 @@
+// Event type constants
+const EVENT_TYPES = {
+    EVENT: 'event',
+    REMINDER: 'reminder',
+    TASK: 'task'
+};
+
 let editingIndex = null; // null means adding, otherwise it's editing
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -102,7 +109,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Open the form for event, reminder, or task
     function openForm(type, index = null) {
         addOptions.classList.remove('show');
-        formTitle.innerText = index === null ? "Add " + type : "Edit " + type;
+        // Capitalize first letter for display
+        const displayType = type.charAt(0).toUpperCase() + type.slice(1);
+        formTitle.innerText = index === null ? "Add " + displayType : "Edit " + displayType;
         formPopup.classList.remove('hidden');
     
         if (index !== null) {
@@ -115,6 +124,12 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('recurrence').value = event.recurrence || "";
         } else {
             eventForm.reset();
+            // Set the selected type in the form
+            const selectedOption = document.querySelector(`.option[data-type="${type.toLowerCase()}"]`);
+            if (selectedOption) {
+                document.querySelectorAll('.option').forEach(opt => opt.classList.remove('show'));
+                selectedOption.classList.add('show');
+            }
         }
     
         editingIndex = index; // Track whether we are editing
@@ -143,7 +158,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const date = document.getElementById('eventDate').value;
         const time = document.getElementById('eventTime').value;
         const recurrence = document.getElementById('recurrence').value;
-        const eventType = document.querySelector('.option.show')?.dataset.type || "Event";
+        const eventType = document.querySelector('.option.show')?.dataset.type?.toLowerCase() || EVENT_TYPES.EVENT;
+
+        // Validate event type
+        if (!Object.values(EVENT_TYPES).includes(eventType)) {
+            alert("Invalid event type. Please select a valid type.");
+            return;
+        }
 
         // Get current date and time
         const now = new Date();
@@ -256,8 +277,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function addEventIcon(dayElement, eventType) {
         const icon = document.createElement('i');
         icon.classList.add('fas', 
-            eventType === "Reminder" ? "fa-bell" :
-            eventType === "Task" ? "fa-check-circle" :
+            eventType === EVENT_TYPES.REMINDER ? "fa-bell" :
+            eventType === EVENT_TYPES.TASK ? "fa-check-circle" :
             "fa-calendar"
         );
         dayElement.appendChild(icon);
@@ -317,9 +338,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Adding event listeners for options (Event, Reminder, Task)
-    const eventOption = document.querySelector('.option[data-type="Event"]');
-    const reminderOption = document.querySelector('.option[data-type="Reminder"]');
-    const taskOption = document.querySelector('.option[data-type="Task"]');
+    const eventOption = document.querySelector('.option[data-type="event"]');
+    const reminderOption = document.querySelector('.option[data-type="reminder"]');
+    const taskOption = document.querySelector('.option[data-type="task"]');
 
     if (eventOption) {
         eventOption.addEventListener('click', () => openForm('Event'));
@@ -405,11 +426,14 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Display the AI's response
-                    const aiResponseDiv = document.createElement('div');
-                    aiResponseDiv.classList.add('ai-message');
-                    
+                // Display the AI's response
+                const aiResponseDiv = document.createElement('div');
+                aiResponseDiv.classList.add('ai-message');
+                
+                if (data.error) {
+                    aiResponseDiv.classList.add('error');
+                    aiResponseDiv.textContent = `AI: ${data.error}`;
+                } else {
                     // Format the response based on whether it's an event creation or regular message
                     let responseText = data.output_llm;
                     if (data.event_data) {
@@ -421,13 +445,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     aiResponseDiv.textContent = `AI: ${responseText}`;
-                    chatArea.appendChild(aiResponseDiv);
-                } else {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.classList.add('ai-message', 'error');
-                    errorDiv.textContent = `AI: ${data.error || 'An error occurred'}`;
-                    chatArea.appendChild(errorDiv);
                 }
+                
+                chatArea.appendChild(aiResponseDiv);
                 chatArea.scrollTop = chatArea.scrollHeight; // Scroll to the latest message
             })
             .catch(error => {
@@ -467,9 +487,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function extractType(message) {
-        if (message.toLowerCase().includes('reminder')) return 'Reminder';
-        if (message.toLowerCase().includes('task')) return 'Task';
-        return 'Event';
+        const lowerMessage = message.toLowerCase();
+        if (lowerMessage.includes('reminder')) return EVENT_TYPES.REMINDER;
+        if (lowerMessage.includes('task')) return EVENT_TYPES.TASK;
+        return EVENT_TYPES.EVENT;
     }
 
     // Close the dropdown if clicked outside the chatbot
@@ -499,9 +520,6 @@ closeButton.addEventListener('click', function() {
     chatbotDropdown.style.display = 'none';  // Hide the dropdown
 });
 
-
-
-// Signup and login 
 
 // Fade out flash messages after a set time
 setTimeout(() => {

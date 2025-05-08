@@ -52,6 +52,16 @@ def save_event():
         return jsonify({'error': 'Not logged in'}), 401
 
     data = request.get_json()
+
+    # Validate and parse the date
+    try:
+        event_date = datetime.strptime(data.get('date'), '%Y-%m-%d')
+        data['date'] = event_date.strftime('%Y-%m-%d')  # reformat to standard
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD.'}), 400
+
+    data.update({'user_id': session['user_id'], 'created_at': datetime.now()})
+
     if '_id' in data:
         result = events.update_one(
             {'_id': ObjectId(data['_id']), 'user_id': session['user_id']},
@@ -59,9 +69,9 @@ def save_event():
         )
         return jsonify({'success': True}) if result.modified_count else jsonify({'error': 'Not found'}), 404
     else:
-        data.update({'user_id': session['user_id'], 'created_at': datetime.now()})
         event_id = events.insert_one(data).inserted_id
         return jsonify({'success': True, 'event_id': str(event_id)})
+
 
 @main_bp.route('/delete_event', methods=['POST'])
 def delete_event():
