@@ -15,6 +15,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const eventForm = document.getElementById('eventForm');
     const eventList = document.getElementById('eventList');
     const cancelButton = document.querySelector('#formPopup button[type="button"]'); // Target the cancel button
+    const chatbotButton = document.getElementById('chatbotButton');
+    const chatbotDropdown = document.getElementById('chatbotDropdown');
+    const closeChatbotButton = document.getElementById('closeChatbot');
+    const userMessageInput = document.getElementById('userMessage');
+    const sendMessageButton = document.getElementById('sendMessageButton');
+    const chatArea = document.getElementById('chatArea');
+    const jumpButton = document.getElementById('jumpButton');
     
     let events = []; // Store events temporarily
 
@@ -275,11 +282,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Helper function to add event icon
     function addEventIcon(dayElement, eventType) {
+        // Get the day number from the parent element's ID
+        const dayNumber = parseInt(dayElement.id.split('-')[2]);
+        // Get the day of the week (0 = Sunday, 1 = Monday, etc.)
+        const dayOfWeek = (dayNumber - 1) % 7;
+        
+        // Skip adding icon if it's a Sunday (dayOfWeek === 0)
+        if (dayOfWeek === 0) {
+            return;
+        }
+        
         const icon = document.createElement('i');
         icon.classList.add('fas', 
-            eventType === EVENT_TYPES.REMINDER ? "fa-bell" :
-            eventType === EVENT_TYPES.TASK ? "fa-check-circle" :
-            "fa-calendar"
+         
         );
         dayElement.appendChild(icon);
     }
@@ -352,61 +367,8 @@ document.addEventListener('DOMContentLoaded', function () {
         taskOption.addEventListener('click', () => openForm('Task'));
     }
 
-    // Initial load of events
-    loadEvents();
-});
-
-
-// Function to handle the jump to a specific month and year
-const jumpButton = document.getElementById('jumpButton');
-
-jumpButton.addEventListener('click', () => {
-    const month = document.getElementById('jumpMonth').value;
-    const year = document.getElementById('jumpYear').value;
-
-    if (year > 0) {
-        window.location.href = `/calendar/${year}/${month}`;
-    } else {
-        alert("Please enter a valid year.");
-    }
-});
-
-
-function deleteEvent(eventId) {
-    // Remove the event from the database or data store
-    events = events.filter(event => event.id !== eventId);
-
-    // Remove the corresponding star on the calendar
-    const eventStar = document.getElementById(`star-${eventId}`);
-    if (eventStar) {
-        eventStar.remove();
-    }
-
-    // Optionally, you can refresh the calendar to show the changes
-    updateCalendar();
-}
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    const chatbotButton = document.getElementById('chatbotButton');
-    const chatbotDropdown = document.getElementById('chatbotDropdown');
-    const closeChatbotButton = document.getElementById('closeChatbot');
-    const userMessageInput = document.getElementById('userMessage');
-    const sendMessageButton = document.getElementById('sendMessageButton');
-    const chatArea = document.getElementById('chatArea');
-
-    // Toggle the chatbot dropdown visibility
-    chatbotButton.addEventListener('click', function() {
-        chatbotDropdown.classList.toggle('hidden');
-    });
-
-    // Close the chatbot dropdown
-    closeChatbotButton.addEventListener('click', function() {
-        chatbotDropdown.classList.add('hidden');
-    });
-
-    // Handle sending a message
-    sendMessageButton.addEventListener('click', function() {
+    // Function to send message
+    function sendMessage() {
         const userMessage = userMessageInput.value.trim();
 
         if (userMessage) {
@@ -416,6 +378,9 @@ document.addEventListener('DOMContentLoaded', function() {
             userMessageDiv.textContent = `You: ${userMessage}`;
             chatArea.appendChild(userMessageDiv);
 
+            // Clear the input field after sending
+            userMessageInput.value = '';
+
             // Send message to backend and get AI response
             fetch('/chat_with_ai', {
                 method: 'POST',
@@ -424,8 +389,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ message: userMessage })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('AI Response:', data); // Debug log
+                
                 // Display the AI's response
                 const aiResponseDiv = document.createElement('div');
                 aiResponseDiv.classList.add('ai-message');
@@ -433,18 +405,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.error) {
                     aiResponseDiv.classList.add('error');
                     aiResponseDiv.textContent = `AI: ${data.error}`;
+                    console.error('AI Error:', data.error);
                 } else {
-                    // Format the response based on whether it's an event creation or regular message
-                    let responseText = data.output_llm;
-                    if (data.event_data) {
-                        const eventType = data.event_data.type;
-                        responseText = `I've created your ${eventType.toLowerCase()}: "${data.event_data.title}" on ${data.event_data.date} at ${data.event_data.time}`;
-                        
-                        // Reload events and refresh the calendar
-                        loadEvents();
-                    }
+                    // Display the output_llm from the backend
+                    aiResponseDiv.textContent = `AI: ${data.output_llm}`;
                     
-                    aiResponseDiv.textContent = `AI: ${responseText}`;
+                    // If there's event data, update the calendar without refreshing the page
+                    if (data.event_data) {
+                        try {
+                            // Add the new event to the events array
+                            const newEvent = {
+                                ...data.event_data,
+                                _id: data.event_id // Add the event ID from the response
+                            };
+                            events.push(newEvent);
+                            
+                            // Update the event list
+                            renderEvents();
+                            
+                            // Clear all existing icons first
+                            document.querySelectorAll('.event-icons').forEach(iconContainer => {
+                                iconContainer.innerHTML = '';
+                            });
+                            
+                            // Update the calendar icons for all events
+                            events.forEach(event => {
+                                handleRecurringEvents(event);
+                            });
+                            
+                            // Update the daily fact if it's a new day
+                            updateDailyFact();
+                        } catch (error) {
+                            console.error('Error updating UI:', error);
+                            aiResponseDiv.textContent = `AI: ${data.output_llm} (Note: There was an error updating the display, but your event was created successfully. Please refresh the page to see it.)`;
+                        }
+                    }
                 }
                 
                 chatArea.appendChild(aiResponseDiv);
@@ -454,72 +449,223 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 const errorDiv = document.createElement('div');
                 errorDiv.classList.add('ai-message', 'error');
-                errorDiv.textContent = 'AI: Sorry, I encountered an error. Please try again.';
+                errorDiv.textContent = `AI: ${error.message || 'An error occurred while processing your request. Please try again.'}`;
                 chatArea.appendChild(errorDiv);
                 chatArea.scrollTop = chatArea.scrollHeight;
             });
         }
+    }
 
-        // Clear the input field after sending
-        userMessageInput.value = '';
+    // Send message when clicking the send button
+    sendMessageButton.addEventListener('click', sendMessage);
+
+    // Send message when pressing Enter
+    userMessageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
 
-    // Helper functions to extract event details from messages
-    function extractTitle(message) {
-        // Simple extraction - can be enhanced with more sophisticated parsing
-        const titleMatch = message.match(/title:?\s*([^,]+)/i);
-        return titleMatch ? titleMatch[1].trim() : 'New Event';
-    }
+    // Toggle the chatbot dropdown visibility with animation
+    chatbotButton.addEventListener('click', function() {
+        chatbotDropdown.classList.toggle('hidden');
+        if (!chatbotDropdown.classList.contains('hidden')) {
+            userMessageInput.focus();
+        }
+    });
 
-    function extractDescription(message) {
-        const descMatch = message.match(/description:?\s*([^,]+)/i);
-        return descMatch ? descMatch[1].trim() : '';
-    }
-
-    function extractDate(message) {
-        const dateMatch = message.match(/(\d{4}-\d{2}-\d{2})/);
-        return dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
-    }
-
-    function extractTime(message) {
-        const timeMatch = message.match(/(\d{1,2}:\d{2})/);
-        return timeMatch ? timeMatch[1] : '00:00';
-    }
-
-    function extractType(message) {
-        const lowerMessage = message.toLowerCase();
-        if (lowerMessage.includes('reminder')) return EVENT_TYPES.REMINDER;
-        if (lowerMessage.includes('task')) return EVENT_TYPES.TASK;
-        return EVENT_TYPES.EVENT;
-    }
+    // Close the chatbot dropdown
+    closeChatbotButton.addEventListener('click', function() {
+        chatbotDropdown.classList.add('hidden');
+    });
 
     // Close the dropdown if clicked outside the chatbot
     document.addEventListener('click', function(e) {
-        if (!chatbotButton.contains(e.target) && !chatbotDropdown.contains(e.target)) {
+        if (!chatbotButton.contains(e.target) && 
+            !chatbotDropdown.contains(e.target) && 
+            !chatbotDropdown.classList.contains('hidden')) {
             chatbotDropdown.classList.add('hidden');
         }
     });
-});
 
+    // Add welcome message when opening the chat
+    chatbotButton.addEventListener('click', function() {
+        if (!chatbotDropdown.classList.contains('hidden') && chatArea.children.length === 0) {
+            // Load chat history when opening the chat
+            fetch('/get_chat_history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.history && data.history.length > 0) {
+                        // Display chat history
+                        data.history.forEach(msg => {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add(msg.role === 'user' ? 'user-message' : 'ai-message');
+                            messageDiv.textContent = `${msg.role === 'user' ? 'You' : 'AI'}: ${msg.content}`;
+                            chatArea.appendChild(messageDiv);
+                        });
+                    } else {
+                        // Display welcome message if no history
+                        const welcomeDiv = document.createElement('div');
+                        welcomeDiv.classList.add('ai-message');
+                        welcomeDiv.textContent = 'AI: Hello! I\'m your calendar assistant. How can I help you today?';
+                        chatArea.appendChild(welcomeDiv);
+                    }
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error loading chat history:', error);
+                    // Display welcome message if there's an error
+                    const welcomeDiv = document.createElement('div');
+                    welcomeDiv.classList.add('ai-message');
+                    welcomeDiv.textContent = 'AI: Hello! I\'m your calendar assistant. How can I help you today?';
+                    chatArea.appendChild(welcomeDiv);
+                });
+        }
+    });
 
-const chatbotButton = document.getElementById('chatbotButton');
-const chatbotDropdown = document.getElementById('chatbotDropdown');
-const closeButton = document.getElementById('closeChatbot');
-
-// Toggle dropdown visibility when the chatbot button is clicked
-chatbotButton.addEventListener('click', function() {
-    if (chatbotDropdown.style.display === 'none' || chatbotDropdown.style.display === '') {
-        chatbotDropdown.style.display = 'block';  // Show the dropdown
-    } else {
-        chatbotDropdown.style.display = 'none';  // Hide the dropdown
+    // Function to update daily fact
+    function updateDailyFact() {
+        return new Promise((resolve, reject) => {
+            const factElement = document.querySelector('.daily-fact');
+            if (factElement) {
+                factElement.textContent = 'Loading...';
+            }
+            
+            fetch('/get_daily_fact')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fact) {
+                        if (factElement) {
+                            factElement.textContent = data.fact;
+                        }
+                    }
+                    resolve();
+                })
+                .catch(error => {
+                    console.error('Error updating daily fact:', error);
+                    if (factElement) {
+                        factElement.textContent = 'Unable to load daily fact';
+                    }
+                    resolve(); // Still resolve to allow navigation
+                });
+        });
     }
+
+    // Add jump button event listener
+    if (jumpButton) {
+        jumpButton.addEventListener('click', () => {
+            const month = document.getElementById('jumpMonth').value;
+            const year = document.getElementById('jumpYear').value;
+
+            if (year > 0) {
+                // Update the daily fact before changing the page
+                updateDailyFact().then(() => {
+                    window.location.href = `/calendar/${year}/${month}`;
+                });
+            } else {
+                alert("Please enter a valid year.");
+            }
+        });
+    }
+
+    // Initial load of events
+    loadEvents();
 });
 
-// Close the dropdown when the close button is clicked
-closeButton.addEventListener('click', function() {
-    chatbotDropdown.style.display = 'none';  // Hide the dropdown
+
+// Add event listeners for month navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const prevMonthButton = document.querySelector('.prev-month');
+    const nextMonthButton = document.querySelector('.next-month');
+    
+    if (prevMonthButton) {
+        prevMonthButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const currentUrl = window.location.pathname;
+            const match = currentUrl.match(/\/calendar\/(\d+)\/(\d+)/);
+            if (match) {
+                let [_, year, month] = match;
+                year = parseInt(year);
+                month = parseInt(month);
+                
+                if (month === 1) {
+                    year--;
+                    month = 12;
+                } else {
+                    month--;
+                }
+                
+                updateDailyFact().then(() => {
+                    window.location.href = `/calendar/${year}/${month}`;
+                });
+            }
+        });
+    }
+    
+    if (nextMonthButton) {
+        nextMonthButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const currentUrl = window.location.pathname;
+            const match = currentUrl.match(/\/calendar\/(\d+)\/(\d+)/);
+            if (match) {
+                let [_, year, month] = match;
+                year = parseInt(year);
+                month = parseInt(month);
+                
+                if (month === 12) {
+                    year++;
+                    month = 1;
+                } else {
+                    month++;
+                }
+                
+                updateDailyFact().then(() => {
+                    window.location.href = `/calendar/${year}/${month}`;
+                });
+            }
+        });
+    }
+    
+    // Initial load of daily fact
+    updateDailyFact();
 });
 
+
+function deleteEvent(eventId) {
+    if (confirm("Are you sure you want to delete this event?")) {
+        fetch('/delete_event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ event_id: eventId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the event from the events array
+                events = events.filter(event => event._id !== eventId);
+                
+                // Update the UI
+                renderEvents();
+                
+                // Clear and update calendar icons
+                document.querySelectorAll('.event-icons').forEach(iconContainer => {
+                    iconContainer.innerHTML = '';
+                });
+                events.forEach(event => {
+                    handleRecurringEvents(event);
+                });
+            }
+        })
+        .catch(error => console.error('Error deleting event:', error));
+    }
+}
+
+
+
+// Signup and login 
 
 // Fade out flash messages after a set time
 setTimeout(() => {
