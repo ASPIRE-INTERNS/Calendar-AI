@@ -18,23 +18,59 @@ This is a modular and extensible AI-powered calendar web application built with 
 ## 🗂 Project Structure
 
 ```
-├── app/
-│   ├── config/         # Configuration files
+├── .env
+├── .gitignore
+├── app
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   └── __init__.cpython-313.pyc
+│   ├── config
+│   │   ├── __pycache__
+│   │   │   └── config.cpython-313.pyc
+│   │   └── config.py
+│   ├── models
+│   │   └── __pycache__
+│   │       └── user.cpython-313.pyc
+│   ├── routes
 │   │   ├── __init__.py
-│   │   └── settings.py # Environment and LLM configurations
-│   ├── routes/         # Route handlers
-│   │   ├── auth.py     # Authentication routes
-│   │   └── calendar.py # Calendar operation routes
-│   ├── services/       # Business logic and services
-│   │   ├── llm_service.py    # LLM integration service
-│   │   ├── calendar_service.py # Calendar operations
-│   │   └── auth_service.py   # Authentication logic
-│   ├── static/         # Static files (CSS, JS, images)
-│   ├── templates/      # HTML templates
-│   └── __init__.py     # Application factory
-├── run.py              # Application entry point
-├── requirements.txt    # Project dependencies
-└── .gitignore          # Git ignore file
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-311.pyc
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── auth.cpython-311.pyc
+│   │   │   ├── auth.cpython-313.pyc
+│   │   │   ├── main.cpython-311.pyc
+│   │   │   └── main.cpython-313.pyc
+│   │   ├── auth.py
+│   │   └── main.py
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-311.pyc
+│   │   │   ├── __init__.cpython-313.pyc
+│   │   │   ├── ai_assistant.cpython-311.pyc
+│   │   │   └── ai_assistant.cpython-313.pyc
+│   │   └── ai_assistant.py
+│   ├── static
+│   │   ├── css
+│   │   │   ├── style.css
+│   │   │   └── styles.css
+│   │   ├── img
+│   │   │   └── favicon.ico
+│   │   └── js
+│   │       └── script.js
+│   ├── templates
+│   │   ├── change_password.html
+│   │   ├── index.html
+│   │   ├── login.html
+│   │   └── signup.html
+│   └── utils
+│       ├── __pycache__
+│       │   ├── enums.cpython-313.pyc
+│       │   └── facts.cpython-313.pyc
+│       └── enums.py
+├── requirements.txt
+└── run.py
 ```
 
 ---
