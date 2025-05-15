@@ -22,34 +22,17 @@ This is a modular and extensible AI-powered calendar web application built with 
 ├── .gitignore
 ├── app
 │   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-311.pyc
-│   │   └── __init__.cpython-313.pyc
 │   ├── config
-│   │   ├── __pycache__
-│   │   │   └── config.cpython-313.pyc
 │   │   └── config.py
 │   ├── models
 │   │   └── __pycache__
 │   │       └── user.cpython-313.pyc
 │   ├── routes
 │   │   ├── __init__.py
-│   │   ├── __pycache__
-│   │   │   ├── __init__.cpython-311.pyc
-│   │   │   ├── __init__.cpython-313.pyc
-│   │   │   ├── auth.cpython-311.pyc
-│   │   │   ├── auth.cpython-313.pyc
-│   │   │   ├── main.cpython-311.pyc
-│   │   │   └── main.cpython-313.pyc
 │   │   ├── auth.py
 │   │   └── main.py
 │   ├── services
 │   │   ├── __init__.py
-│   │   ├── __pycache__
-│   │   │   ├── __init__.cpython-311.pyc
-│   │   │   ├── __init__.cpython-313.pyc
-│   │   │   ├── ai_assistant.cpython-311.pyc
-│   │   │   └── ai_assistant.cpython-313.pyc
 │   │   └── ai_assistant.py
 │   ├── static
 │   │   ├── css
@@ -65,9 +48,6 @@ This is a modular and extensible AI-powered calendar web application built with 
 │   │   ├── login.html
 │   │   └── signup.html
 │   └── utils
-│       ├── __pycache__
-│       │   ├── enums.cpython-313.pyc
-│       │   └── facts.cpython-313.pyc
 │       └── enums.py
 ├── requirements.txt
 └── run.py
