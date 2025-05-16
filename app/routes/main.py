@@ -58,32 +58,80 @@ def calendar_view(year, month):
 
 @main_bp.route('/save_event', methods=['POST'])
 def save_event():
-    db = current_app.db
-    events = db['events']
-
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    data = request.get_json()
-
-    # Validate and parse the date
     try:
-        event_date = datetime.strptime(data.get('date'), '%Y-%m-%d')
-        data['date'] = event_date.strftime('%Y-%m-%d')  # reformat to standard
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD.'}), 400
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
 
-    data.update({'user_id': session['user_id'], 'created_at': datetime.now()})
+        db = current_app.db
+        events = db['events']
+        data = request.get_json()
 
-    if '_id' in data:
-        result = events.update_one(
-            {'_id': ObjectId(data['_id']), 'user_id': session['user_id']},
-            {'$set': data}
-        )
-        return jsonify({'success': True}) if result.modified_count else jsonify({'error': 'Not found'}), 404
-    else:
-        event_id = events.insert_one(data).inserted_id
-        return jsonify({'success': True, 'event_id': str(event_id)})
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        print(f"Received event data: {data}")  # Debug log
+
+        # Validate and parse the date
+        try:
+            event_date = datetime.strptime(data.get('date'), '%Y-%m-%d')
+            data['date'] = event_date.strftime('%Y-%m-%d')  # reformat to standard
+        except (ValueError, TypeError) as e:
+            print(f"Date parsing error: {str(e)}")  # Debug log
+            return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD.'}), 400
+
+        # Add user and creation info
+        data.update({
+            'user_id': session['user_id'],
+            'created_at': datetime.now()
+        })
+
+        print(f"Final event data to save: {data}")  # Debug log
+
+        try:
+            if '_id' in data:
+                # Update existing event
+                print(f"Updating event with ID: {data['_id']}")  # Debug log
+                try:
+                    object_id = ObjectId(data['_id'])
+                except Exception as e:
+                    print(f"Invalid ObjectId format: {str(e)}")  # Debug log
+                    return jsonify({'error': 'Invalid event ID format'}), 400
+
+                # Remove _id from update data to prevent immutable field error
+                update_data = {k: v for k, v in data.items() if k != '_id'}
+                print(f"Update data (without _id): {update_data}")  # Debug log
+
+                result = events.update_one(
+                    {'_id': object_id, 'user_id': session['user_id']},
+                    {'$set': update_data}
+                )
+                print(f"Update result: {result.raw_result}")  # Debug log
+                
+                if result.modified_count == 0:
+                    # Check if the event exists
+                    existing_event = events.find_one({'_id': object_id})
+                    if not existing_event:
+                        return jsonify({'error': 'Event not found'}), 404
+                    elif existing_event['user_id'] != session['user_id']:
+                        return jsonify({'error': 'Unauthorized to modify this event'}), 403
+                    else:
+                        return jsonify({'error': 'No changes made to the event'}), 400
+                return jsonify({'success': True})
+            else:
+                # Create new event
+                print("Creating new event")  # Debug log
+                result = events.insert_one(data)
+                print(f"Insert result: {result.raw_result}")  # Debug log
+                return jsonify({'success': True, 'event_id': str(result.inserted_id)})
+        except Exception as e:
+            print(f"Database error details: {str(e)}")  # Debug log
+            print(f"Database error traceback: {traceback.format_exc()}")  # Debug log
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+    except Exception as e:
+        print(f"Error in save_event: {str(e)}")  # Debug log
+        print(f"Error traceback: {traceback.format_exc()}")  # Debug log
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @main_bp.route('/delete_event', methods=['POST'])
 def delete_event():
@@ -120,7 +168,10 @@ def get_events():
     event_list = list(events.find({
         'user_id': session['user_id'],
         'date': {'$regex': f'^{year}-{month:02d}'}
-    }))
+    }).sort([
+        ('date', 1),  # Sort by date ascending
+        ('time', 1)   # Then by time ascending
+    ]))
     for e in event_list:
         e['_id'] = str(e['_id'])
     return jsonify(event_list)

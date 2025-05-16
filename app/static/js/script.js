@@ -61,11 +61,12 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             body: JSON.stringify(eventData)
         })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json();
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(data.error || 'Network response was not ok');
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data.error) {
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => {
             console.error('Error saving event:', error);
             alert('Error saving event: ' + error.message);
+            throw error; // Re-throw to be caught by the form submission handler
         });
     }
 
@@ -124,11 +126,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (index !== null) {
             // Pre-fill form fields
             const event = events[index];
-            document.getElementById('title').value = event.title;
-            document.getElementById('description').value = event.description;
-            document.getElementById('eventDate').value = event.date || "";
-            document.getElementById('eventTime').value = event.time || "";
-            document.getElementById('recurrence').value = event.recurrence || "";
+            document.getElementById('title').value = event.title || '';
+            document.getElementById('description').value = event.description || '';
+            document.getElementById('eventDate').value = event.date || '';
+            document.getElementById('eventTime').value = event.time || '';
+            document.getElementById('recurrence').value = event.recurrence || 'none';
+            
+            // Set the correct event type in the form
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('show');
+                if (opt.dataset.type.toLowerCase() === event.type.toLowerCase()) {
+                    opt.classList.add('show');
+                }
+            });
         } else {
             eventForm.reset();
             // Set the selected type in the form
@@ -214,7 +224,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadEvents(); // Reload events after saving
             } catch (error) {
                 console.error('Error in form submission:', error);
-                alert('Error saving event: ' + error.message);
+                // Don't show alert here as it's already shown in saveEvent
+                // Just keep the form open so user can try again
             }
         }
     });
@@ -309,33 +320,76 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('yourEventsHeading').style.display = 'none';
         }
     
-        events.forEach((ev, index) => {
-            const eventDiv = document.createElement('div');
-            eventDiv.classList.add('event-item');
-            
-            // Format the recurrence text
-            let recurrenceText = (!ev.recurrence || ev.recurrence === 'none') 
-                ? 'No Recurrence' 
-                : ev.recurrence.charAt(0).toUpperCase() + ev.recurrence.slice(1);
+        // Group events by date
+        const eventsByDate = {};
+        events.forEach(event => {
+            if (!eventsByDate[event.date]) {
+                eventsByDate[event.date] = [];
+            }
+            eventsByDate[event.date].push(event);
+        });
 
+        // Sort dates
+        const sortedDates = Object.keys(eventsByDate).sort();
+
+        // Render events by date
+        sortedDates.forEach(date => {
+            const dateEvents = eventsByDate[date];
             
-            eventDiv.innerHTML = `
-                <h3>${ev.title}</h3>
-                <p>${ev.description}</p>
-                <p><strong>Date:</strong> ${ev.date}</p>
-                <p><strong>Time:</strong> ${ev.time}</p>
-                <p><strong>Recurrence:</strong> ${recurrenceText}</p>
-                <p><strong>Type:</strong> ${ev.type}</p>
-                <div class="event-actions">
-                    <button onclick="editEvent(${index})">Edit</button>
-                    <button onclick="deleteEvent(${index})">Delete</button>
-                </div>
-            `;
-            
-            eventList.appendChild(eventDiv);
-            
-            // Handle recurring events
-            handleRecurringEvents(ev);
+            // Create date header
+            const dateHeader = document.createElement('div');
+            dateHeader.classList.add('date-header');
+            const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            dateHeader.innerHTML = `<h3>${formattedDate}</h3>`;
+            eventList.appendChild(dateHeader);
+
+            // Sort events by time for this date
+            dateEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+            // Create events for this date
+            dateEvents.forEach((ev, index) => {
+                const eventDiv = document.createElement('div');
+                eventDiv.classList.add('event-item');
+                
+                // Format the recurrence text
+                let recurrenceText = (!ev.recurrence || ev.recurrence === 'none') 
+                    ? 'No Recurrence' 
+                    : ev.recurrence.charAt(0).toUpperCase() + ev.recurrence.slice(1);
+
+                // Format the time
+                const time = ev.time ? new Date(`2000-01-01T${ev.time}`).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                }) : 'No time set';
+                
+                eventDiv.innerHTML = `
+                    <div class="event-content">
+                        <h4>${ev.title}</h4>
+                        <p class="event-description">${ev.description}</p>
+                        <div class="event-details">
+                            <p><i class="far fa-clock"></i> ${time}</p>
+                            <p><i class="fas fa-sync"></i> ${recurrenceText}</p>
+                            <p><i class="fas fa-tag"></i> ${ev.type}</p>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button onclick="editEvent(${events.indexOf(ev)})" class="edit-btn">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button onclick="deleteEvent(${events.indexOf(ev)})" class="delete-btn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+                
+                eventList.appendChild(eventDiv);
+            });
         });
     }    
 
@@ -349,7 +403,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Edit event
     window.editEvent = function(index) {
-        openForm('Event', index);
+        const event = events[index];
+        openForm(event.type, index);
     }
 
     // Adding event listeners for options (Event, Reminder, Task)

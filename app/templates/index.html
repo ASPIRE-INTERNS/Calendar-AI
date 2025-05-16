@@ -54,29 +54,49 @@
                 </div>
             </div>    
             
-            <!-- Placeholder for Form -->
+            <!-- Form Popup -->
             <div id="formPopup" class="hidden">
+                <h2 id="formTitle">Add Event</h2>
                 <form id="eventForm">
-                    <h2 id="formTitle">Add Item</h2>
-                
-                    <input type="text" id="title" placeholder="Title" required><br>
-                
-                    <textarea id="description" placeholder="Description"></textarea><br>
-                
-                    <input type="date" id="eventDate" required><br>
-                
-                    <input type="time" id="eventTime" required><br>
-                
-                    <select id="recurrence">
-                        <option value="none">No Recurrence</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select><br>
-                
-                    <button type="submit">Save</button>
-                    <button type="button" onclick="closeForm()">Cancel</button>
+                    <div class="form-group required">
+                        <label for="title"><i class="fas fa-heading"></i> Title</label>
+                        <input type="text" id="title" name="title" required placeholder="Enter event title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description"><i class="fas fa-align-left"></i> Description</label>
+                        <textarea id="description" name="description" placeholder="Enter event description"></textarea>
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label for="eventDate"><i class="far fa-calendar-alt"></i> Date</label>
+                        <input type="date" id="eventDate" name="date" required>
+                    </div>
+                    
+                    <div class="form-group required">
+                        <label for="eventTime"><i class="far fa-clock"></i> Time</label>
+                        <input type="time" id="eventTime" name="time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recurrence"><i class="fas fa-sync-alt"></i> Recurrence</label>
+                        <select id="recurrence" name="recurrence">
+                            <option value="none">No Recurrence</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button type="button" id="cancelButton">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit">
+                            <i class="fas fa-save"></i> Save Event
+                        </button>
+                    </div>
                 </form>
             </div>    
             

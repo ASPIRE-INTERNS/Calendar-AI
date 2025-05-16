@@ -450,6 +450,11 @@ class OllamaAssistant:
 
         try:
             response = self.generate_response(prompt)
+            
+            # Check if the response indicates LLM service is unavailable
+            if response == "I'm sorry, I'm having trouble connecting to the AI service right now.":
+                return response
+                
             try:
                 fact_data = json.loads(response)
                 fact_text = fact_data.get('fact', '')
@@ -484,18 +489,7 @@ class OllamaAssistant:
                 return fact_text
         except Exception as e:
             print(f"Error generating daily fact: {e}")
-            # Return a default fact if everything fails
-            default_fact = f"Did you know that on {date_str}, many significant events in history have occurred? Today is a great day to learn something new!"
-            self.daily_facts.update_one(
-                {'date': today.strftime('%Y-%m-%d')},
-                {'$set': {
-                    'fact': default_fact,
-                    'date': today.strftime('%Y-%m-%d'),
-                    'created_at': datetime.now()
-                }},
-                upsert=True
-            )
-            return default_fact
+            return "I'm sorry, I'm having trouble connecting to the AI service right now."
 
     def get_daily_fact(self):
         """Get today's fact or generate a new one if none exists"""

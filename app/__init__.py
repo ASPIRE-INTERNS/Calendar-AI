@@ -8,7 +8,6 @@ users_collection = None
 events_collection = None
 llm_info_collection = None
 daily_facts_collection = None
-memory_collection = None
 
 def create_app():
     app = Flask(__name__)
@@ -24,7 +23,6 @@ def create_app():
     events_collection = db['events']
     llm_info_collection = db['llm_info']
     daily_facts_collection = db['daily_facts']
-    memory_collection = db['memory']
 
     # Initialize AI assistant
     ai_assistant = OllamaAssistant()
