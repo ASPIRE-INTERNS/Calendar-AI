@@ -25,8 +25,6 @@ This is a modular and extensible AI-powered calendar web application built with 
 │   ├── config
 │   │   └── config.py
 │   ├── models
-│   │   └── __pycache__
-│   │       └── user.cpython-313.pyc
 │   ├── routes
 │   │   ├── __init__.py
 │   │   ├── auth.py
@@ -42,6 +40,7 @@ This is a modular and extensible AI-powered calendar web application built with 
 │   │   │   └── favicon.ico
 │   │   └── js
 │   │       └── script.js
+│   │       └── todo.js
 │   ├── templates
 │   │   ├── change_password.html
 │   │   ├── index.html
