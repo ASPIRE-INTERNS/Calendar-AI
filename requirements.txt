@@ -1,5 +1,6 @@
 # List your Python package dependencies here
 Flask
+Flask-login
 pymongo
 python-dotenv
 werkzeug
