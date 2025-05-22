@@ -1,11 +1,6 @@
-# Python cache and bytecode
-__pycache__/
-*.py[cod]
-
-# Environment variables
+# .gitignore
 .env
 
-# Logs and database (optional)
-*.log
-*.sqlite3
-*.db
+# Ignore Python cache files
+__pycache__/
+*.py[cod]

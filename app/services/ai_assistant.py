@@ -169,7 +169,8 @@ class OllamaAssistant:
                     - Creating events
                     - Managing reminders
                     - Scheduling tasks
-                    - Showing existing events/reminders/tasks for a specific date, week, or month
+                    - Creating and managing to-do lists (including adding, renaming, and removing to-do lists and items)
+                    - Showing existing events/reminders/tasks/to-do lists for a specific date, week, or month
                     - Answering questions about their calendar
                     - Providing calendar-related suggestions
 
@@ -183,62 +184,33 @@ class OllamaAssistant:
                             "time": "HH:MM",
                             "recurrence": "none",
                             "type": "{', '.join([t.value for t in EventType])}"
+                        }},
+                        "todo_data": {{
+                            "action": "create|add_item|rename|delete|toggle_complete",
+                            "list_name": "...",
+                            "item_text": "...",
+                            "item_index": 0
                         }}
                     }}
 
-                    Time Handling Rules:
-                    1. For 24-hour format:
-                       - Use "HH:MM" format (e.g., "23:00" for 11 PM)
-                       - Single digits should be padded with leading zeros
-                       - Valid hours are 00-23
-                       - Valid minutes are 00-59
-                    
-                    2. For 12-hour format:
-                       - Convert to 24-hour format internally
-                       - "11 AM" becomes "11:00"
-                       - "11 PM" becomes "23:00"
-                       - "12 AM" becomes "00:00"
-                       - "12 PM" becomes "12:00"
-                    
-                    3. For single numbers:
-                       - If number is 1-12, assume AM
-                       - If number is 13-23, use as is
-                       - Always add ":00" for minutes
-                       - Examples:
-                         * "11" becomes "11:00"
-                         * "23" becomes "23:00"
-                         * "1" becomes "01:00"
-                    
-                    4. For unclear times:
-                       - Ask for clarification
-                       - Suggest common times (e.g., "Would you like 11:00 AM or 11:00 PM?")
-                       - Set event_data to null until clarified
+                    To-Do List Handling:
+                    - If the user wants to create a new to-do list, set "todo_data.action" to "create" and provide "list_name".
+                    - If the user wants to add an item to a to-do list, set "todo_data.action" to "add_item", provide "list_name" and "item_text".
+                    - If the user wants to rename a to-do list, set "todo_data.action" to "rename", provide "list_name" (old name) and "item_text" (new name).
+                    - If the user wants to delete a to-do list, set "todo_data.action" to "delete" and provide "list_name".
+                    - If the user wants to mark an item as complete/incomplete, set "todo_data.action" to "toggle_complete", provide "list_name" and "item_index".
+                    - If the user request is not about to-do lists, set "todo_data" to null.
 
-                    Title Guidelines:
-                    1. For reminders:
-                       - Use the main purpose as the title
-                       - Don't include time in the title
-                       - Make it descriptive and specific
-                       - Examples:
-                         * "Bathing" for a bathing reminder
-                         * "Take Medication" for a medication reminder
-                         * "Water Plants" for a plant watering reminder
-                    
-                    2. For tasks:
-                       - Include the action and object
-                       - Make it actionable
-                       - Examples:
-                         * "Complete Project Report"
-                         * "Submit Assignment"
-                         * "Buy Groceries"
-                    
-                    3. For events:
-                       - Include the event type and purpose
-                       - Add context if needed
-                       - Examples:
-                         * "Team Meeting: Project Review"
-                         * "Doctor Appointment"
-                         * "Birthday Party"
+                    Example to-do list response:
+                    {{
+                        "output_llm": "I've created a new to-do list called 'Groceries' with items: milk, bread, eggs.",
+                        "todo_data": {{
+                            "action": "create",
+                            "list_name": "Groceries",
+                            "item_text": "milk, bread, eggs",
+                            "item_index": null
+                        }}
+                    }}
 
                     Example responses:
                     1. Creating a reminder:
@@ -393,6 +365,61 @@ class OllamaAssistant:
                             "event_data": None
                         }
 
+                # If there's todo_data, process it
+                todo_data = response_data.get('todo_data')
+                if todo_data:
+                    try:
+                        print(f"Processing todo_data: {todo_data}")  # Debug log
+                        todo_lists = self.db['todo_lists']
+
+                        action = todo_data.get('action')
+                        list_name = todo_data.get('list_name')
+                        item_text = todo_data.get('item_text')
+                        item_index = todo_data.get('item_index')
+                        user_id_str = str(user_id)
+
+                        if action == "create" and list_name:
+                            # Create a new to-do list, optionally with items
+                            items = []
+                            # If item_text is a comma-separated string, split into items
+                            if item_text:
+                                if isinstance(item_text, str):
+                                    items = [{"text": i.strip(), "completed": False} for i in item_text.split(",") if i.strip()]
+                                elif isinstance(item_text, list):
+                                    items = [{"text": i, "completed": False} for i in item_text]
+                            todo_list_doc = {
+                                "user_id": user_id_str,
+                                "name": list_name,
+                                "items": items
+                            }
+                            result = todo_lists.insert_one(todo_list_doc)
+                            print(f"Created to-do list with ID: {result.inserted_id}")
+                            response_data['todo_data']['_id'] = str(result.inserted_id)
+
+                        elif action == "add_item" and list_name and item_text:
+                            todo_list = todo_lists.find_one({"user_id": user_id_str, "name": list_name})
+                            if todo_list:
+                                # Handle multiple items if item_text is comma-separated or a list
+                                items_to_add = []
+                                if isinstance(item_text, str):
+                                    items_to_add = [i.strip() for i in item_text.split(",") if i.strip()]
+                                elif isinstance(item_text, list):
+                                    items_to_add = [i for i in item_text if i]
+                                for item in items_to_add:
+                                    todo_lists.update_one(
+                                        {"_id": todo_list["_id"]},
+                                        {"$push": {"items": {"text": item, "completed": False}}}
+                                    )
+                                print(f"Added items '{items_to_add}' to list '{list_name}'")
+                            else:
+                                print(f"To-do list '{list_name}' not found for user {user_id_str}")
+
+                        # You can add more actions here: rename, delete, toggle_complete, etc.
+
+                    except Exception as e:
+                        print(f"Error processing todo_data: {e}")
+                        response_data['output_llm'] += " (But there was an error saving your to-do list.)"
+
                 return response_data
                 
             except json.JSONDecodeError as e:
@@ -503,4 +530,4 @@ class OllamaAssistant:
         
         # If no fact exists for today, generate a new one
         return self.generate_daily_fact() 
-        return self.generate_daily_fact() 
+        return self.generate_daily_fact()

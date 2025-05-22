@@ -233,61 +233,60 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to handle recurring events
     function handleRecurringEvents(event) {
         const eventDate = new Date(event.date);
-        const currentMonth = parseInt(document.querySelector('h2').textContent.split(' ')[1]);
-        const currentYear = parseInt(document.querySelector('h2').textContent.split(' ')[0]);
-        
-        switch(event.recurrence) {
-            case 'daily':
-                // Show icon for every day
-                for (let day = 1; day <= 31; day++) {
-                    const dayElement = document.getElementById(`event-icons-${day}`);
-                    if (dayElement) {
-                        addEventIcon(dayElement, event.type);
-                    }
-                }
-                break;
-                
-            case 'weekly':
-                // Show icon for the same day of the week
-                const dayOfWeek = eventDate.getDay();
-                const days = document.querySelectorAll('.day:not(.empty)');
-                days.forEach(day => {
-                    if (parseInt(day.textContent) % 7 === dayOfWeek) {
-                        const dayElement = document.getElementById(`event-icons-${day.textContent.trim()}`);
-                        if (dayElement) {
-                            addEventIcon(dayElement, event.type);
-                        }
-                    }
-                });
-                break;
-                
-            case 'monthly':
-                // Show icon for the same day of the month
-                const dayOfMonth = eventDate.getDate();
-                const dayElement = document.getElementById(`event-icons-${dayOfMonth}`);
-                if (dayElement) {
-                    addEventIcon(dayElement, event.type);
-                }
-                break;
-                
-            case 'yearly':
-                // Show icon if it's the same month and day
-                if (eventDate.getMonth() + 1 === currentMonth) {
+        const headerText = document.querySelector('h2').textContent;
+        const [monthName, year] = headerText.split(' ');
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const currentMonth = monthNames.indexOf(monthName) + 1;
+        const currentYear = parseInt(year);
+
+        switch (event.recurrence) {
+            case 'monthly': {
+                if (eventDate.getDate() && eventDate.getDate() <= 31) {
                     const dayElement = document.getElementById(`event-icons-${eventDate.getDate()}`);
-                    if (dayElement) {
-                        addEventIcon(dayElement, event.type);
-                    }
+                    if (dayElement) addEventIcon(dayElement, event.type);
                 }
                 break;
-                
-            default:
-                // For non-recurring events, show icon only on the specific date
-                if (eventDate.getMonth() + 1 === currentMonth && eventDate.getFullYear() === currentYear) {
+            }
+            case 'quarterly': {
+                const eventMonth = eventDate.getMonth() + 1;
+                // Show icon if the current month is the event month or 3, 6, 9 months after
+                if ((currentMonth - eventMonth) % 3 === 0 && currentMonth >= eventMonth) {
                     const dayElement = document.getElementById(`event-icons-${eventDate.getDate()}`);
-                    if (dayElement) {
-                        addEventIcon(dayElement, event.type);
-                    }
+                    if (dayElement) addEventIcon(dayElement, event.type);
                 }
+                break;
+            }
+            case 'half yearly': {
+                const eventMonth = eventDate.getMonth() + 1;
+                // Show icon if the current month is the event month or 6 months after
+                if ((currentMonth - eventMonth) % 6 === 0 && currentMonth >= eventMonth) {
+                    const dayElement = document.getElementById(`event-icons-${eventDate.getDate()}`);
+                    if (dayElement) addEventIcon(dayElement, event.type);
+                }
+                break;
+            }
+            case 'yearly': {
+                if (
+                    eventDate.getMonth() + 1 === currentMonth &&
+                    eventDate.getDate() && eventDate.getDate() <= 31
+                ) {
+                    const dayElement = document.getElementById(`event-icons-${eventDate.getDate()}`);
+                    if (dayElement) addEventIcon(dayElement, event.type);
+                }
+                break;
+            }
+            default: {
+                if (
+                    eventDate.getMonth() + 1 === currentMonth &&
+                    eventDate.getFullYear() === currentYear
+                ) {
+                    const dayElement = document.getElementById(`event-icons-${eventDate.getDate()}`);
+                    if (dayElement) addEventIcon(dayElement, event.type);
+                }
+            }
         }
     }
 

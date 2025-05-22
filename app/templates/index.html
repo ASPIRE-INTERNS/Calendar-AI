@@ -10,15 +10,22 @@
 
 </script>
 <body>
-    <header>
-        <h1>Calendar</h1>
-    </header>
+<header>
+  <a href="{{ url_for('main.home') }}" class="logo-container">
+    <img src="{{ url_for('static', filename='img/LOGO.png') }}" alt="Logo" class="logo">
+  </a>
+  <div class="welcome-text">
+    <h1>Welcome to your Calendar</h1>
+    <p class="subtitle">Plan your day, stay productive 🌞</p>
+  </div>
+</header>
+
 
     <div class="main-container">
         <div class="calendar-section">
             <h2>{{ month }} {{ year }}</h2>
             <div class="navigation">
-                <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month - 1) }}">&#8592; Previous</a>
+                <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month - 1) }}" class = "Previous">&#8592; Previous</a>
             
                 <div class="jump-container">
                     <select id="jumpMonth">
@@ -40,7 +47,7 @@
                     <button id="jumpButton">Go</button>
                 </div>
             
-                <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month + 1) }}">Next &#8594;</a>
+                <a href="{{ url_for('main.calendar_view', year=current_year, month=current_month + 1) }}" class = "Next">Next &#8594;</a>
             </div>
             
             <div class="add-container">
@@ -82,9 +89,9 @@
                         <label for="recurrence"><i class="fas fa-sync-alt"></i> Recurrence</label>
                         <select id="recurrence" name="recurrence">
                             <option value="none">No Recurrence</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
                             <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="half yearly">Half Yearly</option>
                             <option value="yearly">Yearly</option>
                         </select>
                     </div>
@@ -133,17 +140,22 @@
             <div id="eventList"></div>
         </div>
 
-        <!-- Did You Know Section -->
-        <div class="did-you-know-section">
-            <div class="did-you-know-card">
-                <h3>Did You Know?</h3>
-                <div id="daily-fact" class="daily-fact">
-                    {% if daily_fact %}
-                        {{ daily_fact }}
-                    {% else %}
-                        Loading...
-                    {% endif %}
-                </div>
+    </div>
+    <div class="todo-wrapper">
+        <h2>Your To-Do Lists</h2>
+        <div id="todo-container"></div>
+        <button id="add-list-btn">➕ Add New List</button>
+    </div>
+<!-- Did you know section -->
+    <div class="did-you-know-section-bottom">
+        <div class="did-you-know-card">
+            <h3>Did You Know?</h3>
+            <div id="daily-fact" class="daily-fact">
+                {% if daily_fact %}
+                    {{ daily_fact }}
+                {% else %}
+                    Loading...
+                {% endif %}
             </div>
         </div>
     </div>
@@ -181,75 +193,8 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/todo.js') }}"></script>
     
-    <style>
-    .main-container {
-        display: flex;
-        gap: 30px;
-        padding: 20px;
-        max-width: 1600px;
-        margin: 0 auto;
-        position: relative;
-    }
-
-    .calendar-section {
-        flex: 1;
-        min-width: 800px;
-    }
-
-    .did-you-know-section {
-        width: 400px;
-        position: sticky;
-        top: 20px;
-        height: fit-content;
-    }
-
-    .did-you-know-card {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        padding: 20px;
-        margin-top: 20px;
-    }
-
-    .did-you-know-card h3 {
-        margin: 0 0 15px 0;
-        color: #2c3e50;
-        font-size: 1.4em;
-        font-weight: 600;
-    }
-
-    .daily-fact {
-        font-size: 1.2em;
-        line-height: 1.6;
-        color: #2c3e50;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border-left: 4px solid #007bff;
-    }
-
-    /* Ensure calendar maintains its size */
-    .calendar {
-        width: 100%;
-        min-width: 800px;
-    }
-
-    .day {
-        min-height: 50px;
-        padding: 5px;
-        font-size: 0.9em;
-    }
-
-    .day-name {
-        font-size: 0.9em;
-    }
-
-    .event-icons {
-        font-size: 0.8em;
-    }
-    </style>
-
     <script>
     // Add this to your existing JavaScript
     function updateDailyFact() {

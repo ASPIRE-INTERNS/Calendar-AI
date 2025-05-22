@@ -79,6 +79,11 @@ def save_event():
             print(f"Date parsing error: {str(e)}")  # Debug log
             return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD.'}), 400
 
+        # Validate recurrence
+        allowed_recurrences = ['none', 'monthly', 'quarterly', 'half yearly', 'yearly']
+        if data.get('recurrence', 'none') not in allowed_recurrences:
+            return jsonify({'error': 'Invalid recurrence type'}), 400
+
         # Add user and creation info
         data.update({
             'user_id': session['user_id'],
@@ -121,7 +126,7 @@ def save_event():
                 # Create new event
                 print("Creating new event")  # Debug log
                 result = events.insert_one(data)
-                print(f"Insert result: {result.raw_result}")  # Debug log
+                print(f"Insert result: inserted_id={result.inserted_id}")  # Debug log
                 return jsonify({'success': True, 'event_id': str(result.inserted_id)})
         except Exception as e:
             print(f"Database error details: {str(e)}")  # Debug log
@@ -175,6 +180,110 @@ def get_events():
     for e in event_list:
         e['_id'] = str(e['_id'])
     return jsonify(event_list)
+
+
+#TO-DO____________________________________________________________________________________________________________
+
+
+@main_bp.route('/api/todo-lists', methods=['GET'])
+def get_todo_lists():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    user_id = session['user_id']
+    lists = list(current_app.db.todo_lists.find({'user_id': user_id}))
+    for lst in lists:
+        lst['_id'] = str(lst['_id'])
+    return jsonify(lists)
+
+@main_bp.route('/api/todo-list', methods=['POST'])
+def create_todo_list():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'error': 'List name required'}), 400
+    user_id = session['user_id']
+    list_id = current_app.db.todo_lists.insert_one({
+        'user_id': user_id,
+        'name': data['name'],
+        'items': []
+    }).inserted_id
+    return jsonify({'_id': str(list_id)})
+
+@main_bp.route('/api/todo-list/<list_id>', methods=['PUT'])
+def rename_todo_list(list_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'error': 'New name required'}), 400
+    result = current_app.db.todo_lists.update_one(
+        {'_id': ObjectId(list_id), 'user_id': session['user_id']},
+        {'$set': {'name': data['name']}}
+    )
+    if result.matched_count == 0:
+        return jsonify({'error': 'List not found'}), 404
+    return jsonify({'status': 'updated'})
+
+@main_bp.route('/api/todo-list/<list_id>/item', methods=['POST'])
+def add_todo_item(list_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json()
+    if not data or 'text' not in data:
+        return jsonify({'error': 'Item text required'}), 400
+    result = current_app.db.todo_lists.update_one(
+        {'_id': ObjectId(list_id), 'user_id': session['user_id']},
+        {'$push': {'items': {'text': data['text'], 'completed': False}}}
+    )
+    if result.matched_count == 0:
+        return jsonify({'error': 'List not found'}), 404
+    return jsonify({'status': 'added'})
+
+@main_bp.route('/api/todo-list/<list_id>/item/<int:index>', methods=['PUT'])
+def toggle_complete(list_id, index):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    list_doc = current_app.db.todo_lists.find_one({'_id': ObjectId(list_id), 'user_id': session['user_id']})
+    if not list_doc or index < 0 or index >= len(list_doc['items']):
+        return jsonify({'error': 'List or item not found'}), 404
+    item = list_doc['items'][index]
+    item['completed'] = not item['completed']
+    current_app.db.todo_lists.update_one(
+        {'_id': ObjectId(list_id)},
+        {'$set': {f'items.{index}': item}}
+    )
+    return jsonify({'status': 'toggled'})
+
+@main_bp.route('/api/todo-list/<list_id>/item/<int:index>', methods=['DELETE'])
+def delete_todo_item(list_id, index):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    list_doc = current_app.db.todo_lists.find_one({'_id': ObjectId(list_id), 'user_id': session['user_id']})
+    if not list_doc or index < 0 or index >= len(list_doc['items']):
+        return jsonify({'error': 'List or item not found'}), 404
+    items = list_doc['items']
+    items.pop(index)
+    current_app.db.todo_lists.update_one(
+        {'_id': ObjectId(list_id)},
+        {'$set': {'items': items}}
+    )
+    return jsonify({'status': 'deleted'})
+
+@main_bp.route('/api/todo-list/<list_id>', methods=['DELETE'])
+def delete_todo_list(list_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    result = current_app.db.todo_lists.delete_one({
+        '_id': ObjectId(list_id),
+        'user_id': session['user_id']
+    })
+    if result.deleted_count == 0:
+        return jsonify({'error': 'List not found'}), 404
+    return jsonify({'status': 'deleted'})
+
+
+#CHAT AI_______________________________________________________________________________________________________________
 
 @main_bp.route('/chat_with_ai', methods=['POST'])
 def chat_with_ai():
