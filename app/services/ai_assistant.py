@@ -470,6 +470,9 @@ class OllamaAssistant:
         - Engaging and surprising
         - Appropriate for all ages
         - Related to science, history, technology, or general knowledge
+        - Birthdays of famous people or significant events are acceptable
+        - Avoid trivia or obscure facts
+        - Try to relate Facts of India to the date
         
         Format the response as a JSON object with a single field 'fact' containing the fact text.
         Keep the fact concise (1-2 sentences).
