@@ -5,3 +5,4 @@ pymongo
 python-dotenv
 werkzeug
 requests
+pymongo[srv]==3.12

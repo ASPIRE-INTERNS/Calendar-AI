@@ -6,6 +6,27 @@ const EVENT_TYPES = {
 };
 
 let editingIndex = null; // null means adding, otherwise it's editing
+let assistantPassword = null; // Store the AI assistant password for the session
+let passwordResolve = null; // For async modal handling
+
+function showAssistantPasswordModal(errorMsg = "") {
+    const modal = document.getElementById('assistantPasswordModal');
+    const input = document.getElementById('assistantPasswordInput');
+    const errorDiv = document.getElementById('assistantPasswordError');
+    modal.classList.remove('hidden');
+    input.value = '';
+    input.focus();
+    errorDiv.style.display = errorMsg ? 'block' : 'none';
+    errorDiv.textContent = errorMsg;
+    return new Promise((resolve) => {
+        passwordResolve = resolve;
+    });
+}
+
+function hideAssistantPasswordModal() {
+    const modal = document.getElementById('assistantPasswordModal');
+    modal.classList.add('hidden');
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     const addButton = document.getElementById('addButton');
@@ -422,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Function to send message
-    function sendMessage() {
+    async function sendMessage() {
         const userMessage = userMessageInput.value.trim();
 
         if (userMessage) {
@@ -435,78 +456,95 @@ document.addEventListener('DOMContentLoaded', function () {
             // Clear the input field after sending
             userMessageInput.value = '';
 
-            // Send message to backend and get AI response
-            fetch('/chat_with_ai', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: userMessage })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+            // Prompt for password if not set
+            async function getPassword(errorMsg = "") {
+                assistantPassword = await showAssistantPasswordModal(errorMsg);
+                return assistantPassword;
+            }
+            if (!assistantPassword) {
+                await getPassword();
+                if (!assistantPassword) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.classList.add('ai-message', 'error');
+                    errorDiv.textContent = 'AI: Assistant password is required.';
+                    chatArea.appendChild(errorDiv);
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
-                console.log('AI Response:', data); // Debug log
-                
-                // Display the AI's response
-                const aiResponseDiv = document.createElement('div');
-                aiResponseDiv.classList.add('ai-message');
-                
-                if (data.error) {
-                    aiResponseDiv.classList.add('error');
-                    aiResponseDiv.textContent = `AI: ${data.error}`;
-                    console.error('AI Error:', data.error);
-                } else {
-                    // Display the output_llm from the backend
-                    aiResponseDiv.textContent = `AI: ${data.output_llm}`;
-                    
-                    // If there's event data, update the calendar without refreshing the page
-                    if (data.event_data) {
-                        try {
-                            // Add the new event to the events array
-                            const newEvent = {
-                                ...data.event_data,
-                                _id: data.event_id // Add the event ID from the response
-                            };
-                            events.push(newEvent);
-                            
-                            // Update the event list
-                            renderEvents();
-                            
-                            // Clear all existing icons first
-                            document.querySelectorAll('.event-icons').forEach(iconContainer => {
-                                iconContainer.innerHTML = '';
-                            });
-                            
-                            // Update the calendar icons for all events
-                            events.forEach(event => {
-                                handleRecurringEvents(event);
-                            });
-                            
-                            // Update the daily fact if it's a new day
-                            updateDailyFact();
-                        } catch (error) {
-                            console.error('Error updating UI:', error);
-                            aiResponseDiv.textContent = `AI: ${data.output_llm} (Note: There was an error updating the display, but your event was created successfully. Please refresh the page to see it.)`;
+            }
+
+            // Send message to backend and get AI response
+            async function sendChatRequest() {
+                try {
+                    const response = await fetch('/chat_with_ai', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: userMessage, assistant_password: assistantPassword })
+                    });
+                    if (response.status === 403) {
+                        // Password error, prompt again
+                        assistantPassword = await getPassword('Invalid password. Please try again.');
+                        if (!assistantPassword) {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.classList.add('ai-message', 'error');
+                            errorDiv.textContent = 'AI: Assistant password is required.';
+                            chatArea.appendChild(errorDiv);
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                            throw new Error('Assistant password is required.');
+                        }
+                        // Retry the request
+                        return await sendChatRequest();
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    if (!data) return;
+                    // Display the AI's response
+                    const aiResponseDiv = document.createElement('div');
+                    aiResponseDiv.classList.add('ai-message');
+                    if (data.error) {
+                        aiResponseDiv.classList.add('error');
+                        aiResponseDiv.textContent = `AI: ${data.error}`;
+                        console.error('AI Error:', data.error);
+                    } else {
+                        aiResponseDiv.textContent = `AI: ${data.output_llm}`;
+                        if (data.event_data) {
+                            try {
+                                const newEvent = {
+                                    ...data.event_data,
+                                    _id: data.event_id
+                                };
+                                events.push(newEvent);
+                                renderEvents();
+                                document.querySelectorAll('.event-icons').forEach(iconContainer => {
+                                    iconContainer.innerHTML = '';
+                                });
+                                events.forEach(event => {
+                                    handleRecurringEvents(event);
+                                });
+                                updateDailyFact();
+                            } catch (error) {
+                                console.error('Error updating UI:', error);
+                                aiResponseDiv.textContent = `AI: ${data.output_llm} (Note: There was an error updating the display, but your event was created successfully. Please refresh the page to see it.)`;
+                            }
                         }
                     }
+                    chatArea.appendChild(aiResponseDiv);
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                } catch (error) {
+                    if (error.message === 'Assistant password is required.') return;
+                    console.error('Error:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.classList.add('ai-message', 'error');
+                    errorDiv.textContent = `AI: ${error.message || 'An error occurred while processing your request. Please try again.'}`;
+                    chatArea.appendChild(errorDiv);
+                    chatArea.scrollTop = chatArea.scrollHeight;
                 }
-                
-                chatArea.appendChild(aiResponseDiv);
-                chatArea.scrollTop = chatArea.scrollHeight; // Scroll to the latest message
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.classList.add('ai-message', 'error');
-                errorDiv.textContent = `AI: ${error.message || 'An error occurred while processing your request. Please try again.'}`;
-                chatArea.appendChild(errorDiv);
-                chatArea.scrollTop = chatArea.scrollHeight;
-            });
+            }
+            await sendChatRequest();
         }
     }
 
@@ -625,6 +663,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial load of events
     loadEvents();
+
+    // Modal event listeners (moved here to ensure DOM is ready)
+    const submitBtn = document.getElementById('assistantPasswordSubmit');
+    const cancelBtn = document.getElementById('assistantPasswordCancel');
+    const input = document.getElementById('assistantPasswordInput');
+    submitBtn.addEventListener('click', function () {
+        const val = input.value.trim();
+        if (val) {
+            hideAssistantPasswordModal();
+            if (passwordResolve) passwordResolve(val);
+        } else {
+            document.getElementById('assistantPasswordError').textContent = 'Password is required.';
+            document.getElementById('assistantPasswordError').style.display = 'block';
+        }
+    });
+    cancelBtn.addEventListener('click', function () {
+        hideAssistantPasswordModal();
+        if (passwordResolve) passwordResolve(null);
+    });
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            submitBtn.click();
+        }
+    });
 });
 
 

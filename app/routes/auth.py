@@ -54,7 +54,8 @@ def change_password():
     users = users_collection
 
     if request.method == 'POST':
-        username = request.form.get('username')
+        # Use session username if logged in, else get from form
+        username = session.get('username')
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')

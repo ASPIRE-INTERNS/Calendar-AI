@@ -24,6 +24,11 @@ class OllamaAssistant:
         self.llm_info = None
         self.events = None
         self.daily_facts = None
+        # Groq  
+        self.groq_model_name = None
+        self.groq_base_url = None
+        self.groq_api_key = None
+        # End Groq
         self.json_encoder = MongoJSONEncoder()
         self.conversation_history = []
 
@@ -36,6 +41,9 @@ class OllamaAssistant:
         self.llm_info = self.db['llm_info']
         self.events = self.db['events']
         self.daily_facts = self.db['daily_facts']
+        self.groq_model_name = self.groq_model_name or app.config['GROQ_MODEL']
+        self.groq_base_url = self.groq_base_url or app.config['GROQ_URL']
+        self.groq_api_key = self.groq_api_key or app.config['GROQ_API_KEY']
 
     def generate_response(self, prompt):
         try:
@@ -54,6 +62,26 @@ class OllamaAssistant:
         except requests.exceptions.RequestException as e:
             print(f"Error connecting to Ollama: {e}")
             return "I'm sorry, I'm having trouble connecting to the AI service right now."
+            
+    def generate_response_with_fallback(self, prompt):
+        # Try Groq first
+        try:
+            groq_headers = {"Authorization": f"Bearer {self.groq_api_key}"}
+            groq_payload = {
+                "model": self.groq_model_name,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+            response = requests.post(self.groq_base_url, headers=groq_headers, json=groq_payload, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            # Check for valid response structure
+            if "choices" in data and data["choices"]:
+                return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"Groq API failed, falling back to Ollama: {e}")
+
+        # Fallback to Ollama
+        return self.generate_response(prompt)
             
     def get_conversation_context(self, user_message, user_id):
         """Get the last 3 messages for context from llm_info"""
@@ -242,7 +270,7 @@ class OllamaAssistant:
             
             full_prompt = f"{context}\n\nUser: {user_message}\nAssistant:"
             print(f"Sending prompt to AI: {full_prompt}")  # Debug log
-            response = self.generate_response(full_prompt)
+            response = self.generate_response_with_fallback(full_prompt)
             print(f"Raw AI response: {response}")  # Debug log
             
             try:
@@ -479,7 +507,7 @@ class OllamaAssistant:
         Example response format: {{"fact": "Did you know that on {date_str}, [interesting fact]?"}}"""
 
         try:
-            response = self.generate_response(prompt)
+            response = self.generate_response_with_fallback(prompt)
             
             # Check if the response indicates LLM service is unavailable
             if response == "I'm sorry, I'm having trouble connecting to the AI service right now.":

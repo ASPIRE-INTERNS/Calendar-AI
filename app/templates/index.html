@@ -192,6 +192,19 @@
         </div>
     </div>
 
+    <!-- Password Modal for AI Assistant -->
+    <div id="assistantPasswordModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Enter AI Assistant Password</h3>
+            <input type="password" id="assistantPasswordInput" placeholder="Password" autocomplete="off">
+            <div class="modal-buttons">
+                <button id="assistantPasswordSubmit">Submit</button>
+                <button id="assistantPasswordCancel">Cancel</button>
+            </div>
+            <div id="assistantPasswordError" class="error-message" style="display:none;"></div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/todo.js') }}"></script>
     

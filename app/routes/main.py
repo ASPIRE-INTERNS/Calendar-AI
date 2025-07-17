@@ -298,6 +298,12 @@ def chat_with_ai():
             print("No message provided in request")  # Debug log
             return jsonify({'error': 'No message provided'}), 400
 
+        # Password check for AI assistant
+        assistant_password = data.get('assistant_password')
+        if not assistant_password or assistant_password != current_app.config['AI_ASSISTANT_SECRET']:
+            print("Invalid or missing assistant password")
+            return jsonify({'error': 'Invalid or missing assistant password'}), 403
+
         user_message = data['message']
         print(f"Processing message from user {session['user_id']}: {user_message}")  # Debug log
         
