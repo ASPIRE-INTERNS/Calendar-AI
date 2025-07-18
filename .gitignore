@@ -5,3 +5,6 @@
 __pycache__/
 *.py[cod]
 /cenv 
+Dockerfile
+.dockerignore
+docker-compose.yml
